@@ -48,7 +48,7 @@ public class ChatBehavior : NetworkBehaviour
     [Command]
     private void CmdSendMessage(string message)
     {
-        RpcHandleMessage($"[{connectionToClient.connectionId}]: {message}]");
+        RpcHandleMessage($"[{connectionToClient.connectionId}]: {message}\n");
     }
 
     [ClientRpc]
