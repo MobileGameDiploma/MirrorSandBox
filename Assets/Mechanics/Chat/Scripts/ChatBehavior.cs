@@ -5,7 +5,7 @@ using UnityEngine;
 
 public class ChatBehavior : NetworkBehaviour
 {
-    [SerializeField] private GameObject chatUI = null;
+    public GameObject chatUI = null;
     [SerializeField] private TMP_Text chatText = null;
     [SerializeField] private TMP_InputField inputField = null;
 
@@ -13,8 +13,6 @@ public class ChatBehavior : NetworkBehaviour
 
     public override void OnStartAuthority()
     {
-        chatUI.SetActive(true);
-
         OnMessage += HandleMessage;
     }
 
@@ -26,6 +24,25 @@ public class ChatBehavior : NetworkBehaviour
             return;
         }
         OnMessage -= HandleMessage;
+    }
+    
+    
+    public void TurnUIOn()
+    {
+        if (isLocalPlayer)
+        {
+            chatUI.SetActive(true);
+            Cursor.lockState = CursorLockMode.None;
+        }
+    }
+
+    public void TurnUIOff()
+    {
+        if (isLocalPlayer)
+        {
+            chatUI.SetActive(false);
+            Cursor.lockState = CursorLockMode.Locked;
+        }
     }
 
     private void HandleMessage(string message)

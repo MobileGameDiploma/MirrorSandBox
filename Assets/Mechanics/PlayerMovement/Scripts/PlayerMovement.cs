@@ -9,6 +9,11 @@ public class PlayerMovement : NetworkBehaviour
     public GameObject playerCamera;
     public float sensetivity = 1;
     
+    public ChatBehavior chat;
+    public Canvas localPlayerCanvas;
+    
+    private bool LockMovement = false;
+    
     public override void OnStartClient()
     {
         if (!isLocalPlayer)
@@ -16,58 +21,55 @@ public class PlayerMovement : NetworkBehaviour
             enabled = false;
             playerCamera.GetComponent<Camera>().enabled = false;
             playerCamera.GetComponent<AudioListener>().enabled = false;
+            localPlayerCanvas.enabled = false;
         }
-        CmdCursorLock();
+        else
+        {
+            Cursor.lockState = CursorLockMode.Locked;
+        }
     }
     
     [Client]
     private void Update()
     {
-        CmdMove();
-        CmdCameraMove();
+        if (isLocalPlayer)
+        {
+            if (!LockMovement)
+            {
+                float xAxisRaw = Input.GetAxisRaw("Horizontal");
+                float zAxisRaw = Input.GetAxisRaw("Vertical");
+        
+                float xMouse = Input.GetAxis("Mouse X");
+                float yMouse = Input.GetAxis("Mouse Y");
+        
+                Vector3 movement = playerCamera.transform.right * xAxisRaw + playerCamera.transform.forward * zAxisRaw;
+                movement.Normalize();
+        
+                transform.Translate(movement * moveSpeed * Time.deltaTime, Space.World);
+        
+                Vector3 rotate = new Vector3(-yMouse * sensetivity,Math.Clamp(xMouse * sensetivity, -90f, 90f), 0);
+        
+                playerCamera.transform.eulerAngles += rotate;
+            }
+            
+            if (Input.GetKeyDown(KeyCode.G))
+            {
+                chat.TurnUIOn();
+                LockMovement = true;
+            }
+            
+        }
     }
 
-    [Command]
-    private void CmdMove()
+    public void EnableMovement()
     {
-        RpcMove();
+        if (isLocalPlayer)
+        {
+            LockMovement = false;
+            chat.TurnUIOff();
+        }
     }
-
-    [Command]
-    private void CmdCameraMove()
-    {
-        RpcCameraMove();
-    }
-
-    [Command]
-    private void CmdCursorLock()
-    {
-        RpcCursorLock();
-    }
-
-    [ClientRpc]
-    private void RpcMove()
-    {
-        float x = Input.GetAxisRaw("Horizontal");
-        float z = Input.GetAxisRaw("Vertical");
-        
-        
-        Vector3 movement = playerCamera.transform.right * x + playerCamera.transform.forward * z;
-        movement.Normalize();
-        
-        transform.Translate(movement * moveSpeed * Time.deltaTime, Space.World);
-    }
-
-    [ClientRpc]
-    private void RpcCameraMove()
-    {
-        float x = Input.GetAxis("Mouse Y");
-        float y = Input.GetAxis("Mouse X");
-        
-        Vector3 rotate = new Vector3(-x * sensetivity,Math.Clamp(y * sensetivity, -90f, 90f), 0);
-        
-        playerCamera.transform.eulerAngles += rotate;
-    }
+    
 
     [ClientRpc]
     private void RpcCursorLock()
