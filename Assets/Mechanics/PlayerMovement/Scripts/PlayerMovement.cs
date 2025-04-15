@@ -5,14 +5,19 @@ using UnityEngine;
 public class PlayerMovement : NetworkBehaviour
 {
     public float moveSpeed = 5f;
+    public float runSpeed = 10f;
+    public float jumpForce = 10f;
 
     public GameObject playerCamera;
     public float sensetivity = 1;
+    public Rigidbody rb;
+    public LayerMask groundLayer;
     
     public ChatBehavior chat;
     public Canvas localPlayerCanvas;
     
-    private bool LockMovement = false;
+    private bool lockMovement = false;
+    private bool isGrounded = false;
     
     public override void OnStartClient()
     {
@@ -34,7 +39,7 @@ public class PlayerMovement : NetworkBehaviour
     {
         if (isLocalPlayer)
         {
-            if (!LockMovement)
+            if (!lockMovement)
             {
                 float xAxisRaw = Input.GetAxisRaw("Horizontal");
                 float zAxisRaw = Input.GetAxisRaw("Vertical");
@@ -44,8 +49,15 @@ public class PlayerMovement : NetworkBehaviour
         
                 Vector3 movement = playerCamera.transform.right * xAxisRaw + playerCamera.transform.forward * zAxisRaw;
                 movement.Normalize();
-        
-                transform.Translate(movement * moveSpeed * Time.deltaTime, Space.World);
+
+                if (Input.GetKey(KeyCode.LeftShift))
+                {
+                    transform.Translate(movement * runSpeed * Time.deltaTime, Space.World);
+                }
+                else
+                {
+                    transform.Translate(movement * moveSpeed * Time.deltaTime, Space.World);
+                }
         
                 Vector3 rotate = new Vector3(-yMouse * sensetivity,Math.Clamp(xMouse * sensetivity, -90f, 90f), 0);
         
@@ -55,9 +67,17 @@ public class PlayerMovement : NetworkBehaviour
             if (Input.GetKeyDown(KeyCode.G))
             {
                 chat.TurnUIOn();
-                LockMovement = true;
+                lockMovement = true;
             }
-            
+
+            if (Input.GetKeyUp(KeyCode.Space))
+            {
+                if (isGrounded)
+                {
+                    rb.AddForce(Vector3.up * jumpForce, ForceMode.Impulse);
+                    isGrounded = false;
+                }
+            }
         }
     }
 
@@ -65,7 +85,7 @@ public class PlayerMovement : NetworkBehaviour
     {
         if (isLocalPlayer)
         {
-            LockMovement = false;
+            lockMovement = false;
             chat.TurnUIOff();
         }
     }
@@ -75,5 +95,13 @@ public class PlayerMovement : NetworkBehaviour
     private void RpcCursorLock()
     {
         Cursor.lockState = CursorLockMode.Locked;
+    }
+
+    private void OnCollisionEnter(Collision other)
+    {
+        if (((1 << other.gameObject.layer) & groundLayer) != 0)
+        {
+            isGrounded = true;
+        }
     }
 }
